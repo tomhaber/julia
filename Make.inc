@@ -446,6 +446,12 @@ else
 $(error "unknown word-size for arch: $(ARCH)")
 endif
 
+ifneq ($(ARCH),arm)
+CC += -m$(BINARY)
+CXX += -m$(BINARY)
+FC += -m$(BINARY)
+endif
+
 ifeq ($(USEGCC),1)
 ifeq ($(ARCH), arm)
 else ifneq ($(ARCH), ppc64)
