@@ -8,13 +8,7 @@ typealias DenseVector{T} DenseArray{T,1}
 typealias DenseMatrix{T} DenseArray{T,2}
 typealias DenseVecOrMat{T} Union(DenseVector{T}, DenseMatrix{T})
 
-typealias StridedArray{T,N,A<:DenseArray} Union(DenseArray{T,N}, SubArray{T,N,A})
-typealias StridedVector{T,A<:DenseArray}  Union(DenseArray{T,1}, SubArray{T,1,A})
-typealias StridedMatrix{T,A<:DenseArray}  Union(DenseArray{T,2}, SubArray{T,2,A})
-typealias StridedVecOrMat{T} Union(StridedVector{T}, StridedMatrix{T})
-
 ## Basic functions ##
-
 size(a::Array) = arraysize(a)
 size(a::Array, d) = arraysize(a, d)
 size(a::Matrix) = (arraysize(a,1), arraysize(a,2))
@@ -258,14 +252,15 @@ getindex(A::Array, i0::Real, i1::Real, i2::Real, i3::Real,  i4::Real, i5::Real, 
     arrayref(A,to_index(i0),to_index(i1),to_index(i2),to_index(i3),to_index(i4),to_index(i5),to_index(I)...)
 
 # Fast copy using copy! for UnitRange
-function getindex(A::Array, I::UnitRange{Int})
-    lI = length(I)
-    X = similar(A, lI)
-    if lI > 0
-        copy!(X, 1, A, first(I), lI)
-    end
-    return X
-end
+getindex(A::Array, I::UnitRange) = view(A, I)
+# function getindex(A::Array, I::UnitRange{Int})
+#     lI = length(I)
+#     X = similar(A, lI)
+#     if lI > 0
+#         copy!(X, 1, A, first(I), lI)
+#     end
+#     return X
+# end
 
 function getindex{T<:Real}(A::Array, I::AbstractVector{T})
     return [ A[i] for i in to_index(I) ]

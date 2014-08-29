@@ -1170,7 +1170,104 @@ function shell_parse(raw::String, interp::Bool)
     end
     (ex,last_parse)
 end
-shell_parse(s::String) = shell_parse(s,true)
+function shell_parse(raw::String)
+    interp = true
+    s = strip(raw)
+    last_parse = 0:-1
+    isempty(s) && return interp ? (Expr(:tuple,:()),last_parse) : ({},last_parse)
+
+    in_single_quotes = false
+    in_double_quotes = false
+
+    args = {}
+    arg = {}
+    i = start(s)
+    j = i
+
+    function update_arg(x)
+        if !isa(x,String) || !isempty(x)
+            push!(arg, x)
+        end
+    end
+    function append_arg()
+        if isempty(arg); arg = {"",}; end
+        push!(args, arg)
+        arg = {}
+    end
+
+    while !done(s,j)
+        c, k = next(s,j)
+        if !in_single_quotes && !in_double_quotes && isspace(c)
+            update_arg(s[i:j-1]::ContiguousView{Uint8, 1, Array{Uint8, 1}})
+            append_arg()
+            j = k
+            while !done(s,j)
+                c, k = next(s,j)
+                if !isspace(c)
+                    i = j
+                    break
+                end
+                j = k
+            end
+        elseif interp && !in_single_quotes && c == '$'
+            update_arg(s[i:j-1]::ContiguousView{Uint8, 1, Array{Uint8, 1}}); i = k; j = k
+            if done(s,k)
+                error("\$ right before end of command")
+            end
+            if isspace(s[k])
+                error("space not allowed right after \$")
+            end
+            stpos = j
+            ex, j = parse(s,j,greedy=false)
+            last_parse = stpos:j
+            update_arg(esc(ex)); i = j
+        else
+            if !in_double_quotes && c == '\''
+                in_single_quotes = !in_single_quotes
+                update_arg(s[i:j-1]::ContiguousView{Uint8, 1, Array{Uint8, 1}}); i = k
+            elseif !in_single_quotes && c == '"'
+                in_double_quotes = !in_double_quotes
+                update_arg(s[i:j-1]::ContiguousView{Uint8, 1, Array{Uint8, 1}}); i = k
+            elseif c == '\\'
+                if in_double_quotes
+                    if done(s,k)
+                        error("unterminated double quote")
+                    end
+                    if s[k] == '"' || s[k] == '$'
+                        update_arg(s[i:j-1]::ContiguousView{Uint8, 1, Array{Uint8, 1}}); i = k
+                        c, k = next(s,k)
+                    end
+                elseif !in_single_quotes
+                    if done(s,k)
+                        error("dangling backslash")
+                    end
+                    update_arg(s[i:j-1]::ContiguousView{Uint8, 1, Array{Uint8, 1}}); i = k
+                    c, k = next(s,k)
+                end
+            end
+            j = k
+        end
+    end
+
+    if in_single_quotes; error("unterminated single quote"); end
+    if in_double_quotes; error("unterminated double quote"); end
+
+    update_arg(s[i:end])
+    append_arg()
+
+    if !interp
+        return (args,last_parse)
+    end
+
+    # construct an expression
+    ex = Expr(:tuple)
+    for arg in args
+        push!(ex.args, Expr(:tuple, arg...))
+    end
+    (ex,last_parse)
+end
+
+# shell_parse(s,true)
 
 function shell_split(s::String)
     parsed = shell_parse(s,false)[1]

@@ -7,7 +7,7 @@ import Base: convert, Ptr, pointer
 export ArrayView, ContiguousView, StridedView
 export ContiguousArray, ContiguousVector, ContiguousMatrix
 export contiguous_view, strided_view, view, ellipview, reshape_view
-export iscontiguous, contiguousrank
+export iscontiguous, contiguousrank, jake
 
 
 #################################################
@@ -93,6 +93,11 @@ size{T,N}(a::ArrayView{T,N}, d::Integer) = getdim(size(a), d)
 
 pointer(a::ArrayView) = pointer(parent(a), offset(a)+1)
 convert{T}(::Type{Ptr{T}}, a::ArrayView{T}) = pointer(a)
+convert{T,N,Arr<:Array}(::Type{Array{T,N}}, a::ContiguousView{T,N,Arr}) = begin
+    cpy = similar(a)
+    unsafe_copy!(pointer(cpy), pointer(a), a.len)
+    cpy
+end
 
 similar{T}(a::ArrayView{T}) = Array(T, size(a))
 similar{T}(a::ArrayView{T}, dims::Dims) = Array(T, dims)
