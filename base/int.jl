@@ -634,12 +634,6 @@ else
     checked_mul(x::Uint64, y::Uint64) = box(Uint64,checked_umul(unbox(Uint64,x),unbox(Uint64,y)))
 end
 
-# checked ops are broken for 128-bit types (LLVM bug) ## FIXME: #4905
-
-checked_add(x::Int128, y::Int128) = x + y
-checked_sub(x::Int128, y::Int128) = x - y
-checked_mul(x::Int128, y::Int128) = x * y
-
-checked_add(x::Uint128, y::Uint128) = x + y
-checked_sub(x::Uint128, y::Uint128) = x - y
-checked_mul(x::Uint128, y::Uint128) = x * y
+checked_add{T<:Integer}(x::T, y::T) = x + y
+checked_sub{T<:Integer}(x::T, y::T) = x - y
+checked_mul{T<:Integer}(x::T, y::T) = x * y
