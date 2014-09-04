@@ -509,7 +509,7 @@ function vcat{T}(r::Range{T})
     a = Array(T,n)
     i = 1
     for x in r
-        @inbounds a[i] = x
+        @boundscheck false a[i] = x
         i += 1
     end
     return a
@@ -523,7 +523,7 @@ function vcat{T}(rs::Range{T}...)
     i = 1
     for r in rs
         for x in r
-            @inbounds a[i] = x
+            @boundscheck false a[i] = x
             i += 1
         end
     end
